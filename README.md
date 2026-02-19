@@ -119,12 +119,19 @@ Training outputs saved to `outputs/`:
 ```
 emotion-detection-cnn/
 │
-├── model.py               # CNN architecture (EmotionCNN)
-├── dataset.py             # FER2013 Dataset class + augmentation + DataLoader factory
-├── train.py               # Full training loop with evaluation
-├── analyze_failures.py    # Failure case visualization & analysis
+├── src/
+│   ├── model.py               # CNN architecture (EmotionCNN)
+│   ├── dataset.py             # FER2013 Dataset class + augmentation + DataLoader factory
+│   ├── train.py               # Full training loop with evaluation
+│   └── analyze_failures.py    # Failure case visualization & analysis
 │
-├── outputs/               # Generated at runtime
+├── data/
+│   ├── raw/                   # Place fer2013.csv here
+│   └── processed/             # Reserved for preprocessed outputs
+│
+├── models/                    # Saved model weights (e.g. model.pt)
+│
+├── outputs/                   # Generated at runtime
 │   ├── best_model.pth
 │   ├── training_curves.png
 │   ├── confusion_matrix.png
@@ -134,6 +141,11 @@ emotion-detection-cnn/
 │       ├── confidence_dist.png
 │       └── failures.csv
 │
+├── results/
+│   └── metrics.json
+│
+├── .gitignore
+├── LICENSE
 ├── requirements.txt
 └── README.md
 ```
@@ -155,43 +167,43 @@ pip install -r requirements.txt
 ```bash
 # Option A: Kaggle CLI
 kaggle datasets download -d msambare/fer2013
-unzip fer2013.zip
+unzip fer2013.zip -d data/raw/
 
 # Option B: Download manually from
 # https://www.kaggle.com/datasets/msambare/fer2013
-# Place fer2013.csv in the project root.
+# Place fer2013.csv inside data/raw/
 ```
 
 ### 3. Train
 
 ```bash
 # Default settings (80 epochs, batch 64, lr=1e-3)
-python train.py --csv fer2013.csv
+python src/train.py --csv data/raw/fer2013.csv
 
 # Custom settings
-python train.py \
-    --csv fer2013.csv \
+python src/train.py \
+    --csv data/raw/fer2013.csv \
     --epochs 100 \
     --batch_size 128 \
     --lr 5e-4 \
-    --output_dir runs/exp1
+    --output_dir outputs/exp1
 ```
 
 ### 4. Run Failure Analysis
 
 ```bash
-python analyze_failures.py \
-    --csv fer2013.csv \
+python src/analyze_failures.py \
+    --csv data/raw/fer2013.csv \
     --checkpoint outputs/best_model.pth \
     --num_images 30 \
     --output_dir outputs/failure_analysis
 ```
 
-### 5. Quick Architecture Check
+### 5. Quick Architecture / Dataset Check
 
 ```bash
-python model.py    # prints output shape and param count
-python dataset.py fer2013.csv  # smoke-tests the DataLoader
+python src/model.py                        # prints output shape and param count
+python src/dataset.py data/raw/fer2013.csv # smoke-tests the DataLoader
 ```
 
 ---
