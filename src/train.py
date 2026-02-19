@@ -12,10 +12,9 @@ Best practices implemented:
   ✔ Mixed precision (AMP)      (torch.cuda.amp — 2× speedup on GPU)
   ✔ Per-epoch metrics          (Accuracy, Precision, Recall, F1 via sklearn)
   ✔ Confusion matrix           (saved as PNG at end of training)
-  ✔ TensorBoard logging        (optional)
 
 Usage:
-    python train.py --csv fer2013.csv --epochs 80 --batch_size 64
+    python src/train.py --data_dir data/raw --epochs 80 --batch_size 64
 """
 
 import argparse
@@ -233,7 +232,7 @@ def train(args: argparse.Namespace):
 
     # ── Data ─────────────────────────────────────────────────────────────────
     train_loader, val_loader, test_loader, class_weights = get_dataloaders(
-        csv_path=args.csv,
+        data_dir=args.data_dir,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         use_weighted_sampler=True,
@@ -365,16 +364,16 @@ def train(args: argparse.Namespace):
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train EmotionCNN on FER2013")
-    p.add_argument("--csv",          type=str,   default="fer2013.csv",  help="Path to FER2013 CSV")
-    p.add_argument("--output_dir",   type=str,   default="outputs",      help="Directory for checkpoints & plots")
-    p.add_argument("--epochs",       type=int,   default=80,             help="Max training epochs")
-    p.add_argument("--batch_size",   type=int,   default=64,             help="Batch size")
-    p.add_argument("--lr",           type=float, default=1e-3,           help="Peak learning rate (AdamW)")
-    p.add_argument("--weight_decay", type=float, default=1e-4,           help="AdamW weight decay")
-    p.add_argument("--dropout_fc",   type=float, default=0.5,            help="Dropout for FC layers")
-    p.add_argument("--dropout_conv", type=float, default=0.25,           help="Dropout for conv blocks")
-    p.add_argument("--patience",     type=int,   default=12,             help="Early stopping patience")
-    p.add_argument("--num_workers",  type=int,   default=4,              help="DataLoader workers")
+    p.add_argument("--data_dir",     type=str,   default="data/raw",   help="Root dir with train/ and test/ subfolders")
+    p.add_argument("--output_dir",   type=str,   default="outputs",    help="Directory for checkpoints & plots")
+    p.add_argument("--epochs",       type=int,   default=80,           help="Max training epochs")
+    p.add_argument("--batch_size",   type=int,   default=64,           help="Batch size")
+    p.add_argument("--lr",           type=float, default=1e-3,         help="Peak learning rate (AdamW)")
+    p.add_argument("--weight_decay", type=float, default=1e-4,         help="AdamW weight decay")
+    p.add_argument("--dropout_fc",   type=float, default=0.5,          help="Dropout for FC layers")
+    p.add_argument("--dropout_conv", type=float, default=0.25,         help="Dropout for conv blocks")
+    p.add_argument("--patience",     type=int,   default=12,           help="Early stopping patience")
+    p.add_argument("--num_workers",  type=int,   default=4,            help="DataLoader workers")
     return p.parse_args()
 
 

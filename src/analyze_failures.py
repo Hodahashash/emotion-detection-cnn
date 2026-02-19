@@ -10,11 +10,10 @@ Helps diagnose:
   • Common failure patterns (extreme lighting, occlusion, profile views)
 
 Usage:
-    python analyze_failures.py \
-        --csv fer2013.csv \
+    python src/analyze_failures.py \
+        --data_dir data/raw \
         --checkpoint outputs/best_model.pth \
         --num_images 30 \
-        --split PrivateTest \
         --output_dir outputs/failure_analysis
 """
 
@@ -27,11 +26,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
-
-from dataset import FER2013Dataset, get_val_test_transforms, EMOTION_LABELS
-from model import EmotionCNN
-
+from torch.utils.data import DataLoader
 import pandas as pd
+
+from dataset import get_val_test_transforms, EMOTION_LABELS
+from model import EmotionCNN
+from torchvision.datasets import ImageFolder
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ import pandas as pd
 @torch.no_grad()
 def collect_failures(
     model: torch.nn.Module,
-    dataset: FER2013Dataset,
+    dataset: ImageFolder,
     device: torch.device,
     batch_size: int = 64,
 ) -> list[dict]:
@@ -52,8 +52,6 @@ def collect_failures(
         List of dicts with keys:
             idx, image_tensor, true_label, pred_label, confidence, probs
     """
-    from torch.utils.data import DataLoader
-
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
     model.eval()
 
@@ -103,7 +101,6 @@ def plot_failure_grid(
     """
     Grid of misclassified images.
     Title = "True: X | Pred: Y (conf XX%)"
-    Background colour = red for wrong, subtle green box for ground-truth emotion.
     """
     if sort_by_confidence:
         # Show the most confident wrong predictions first — worst failures
@@ -196,17 +193,16 @@ def main(args: argparse.Namespace):
     print(f"[Device] {device}")
 
     # Load model
-    model     = EmotionCNN()
+    model      = EmotionCNN()
     checkpoint = torch.load(args.checkpoint, map_location=device)
     model.load_state_dict(checkpoint["model_state"])
-    model     = model.to(device)
+    model      = model.to(device)
     print(f"[Model] Loaded checkpoint from epoch {checkpoint.get('epoch', '?')}")
 
-    # Load split
-    df = pd.read_csv(args.csv)
-    split_df = df[df["Usage"] == args.split].reset_index(drop=True)
-    print(f"[Data] {args.split} split — {len(split_df):,} samples")
-    dataset = FER2013Dataset(split_df, transform=get_val_test_transforms())
+    # Load test set from image folder
+    test_dir = Path(args.data_dir) / "test"
+    dataset  = ImageFolder(test_dir, transform=get_val_test_transforms())
+    print(f"[Data] Test set — {len(dataset):,} samples | Classes: {dataset.classes}")
 
     # Collect failures
     failures = collect_failures(model, dataset, device)
@@ -236,11 +232,10 @@ def main(args: argparse.Namespace):
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Failure Case Analysis for EmotionCNN")
-    p.add_argument("--csv",        type=str, required=True,                    help="Path to fer2013.csv")
-    p.add_argument("--checkpoint", type=str, default="outputs/best_model.pth", help="Path to model checkpoint")
-    p.add_argument("--num_images", type=int, default=30,                       help="Number of failure images to display")
-    p.add_argument("--split",      type=str, default="PrivateTest",            choices=["Training", "PublicTest", "PrivateTest"])
-    p.add_argument("--output_dir", type=str, default="outputs/failure_analysis")
+    p.add_argument("--data_dir",    type=str, default="data/raw",                help="Root dir with train/ and test/ subfolders")
+    p.add_argument("--checkpoint",  type=str, default="outputs/best_model.pth",  help="Path to model checkpoint")
+    p.add_argument("--num_images",  type=int, default=30,                         help="Number of failure images to display")
+    p.add_argument("--output_dir",  type=str, default="outputs/failure_analysis", help="Where to save analysis outputs")
     return p.parse_args()
 
 
